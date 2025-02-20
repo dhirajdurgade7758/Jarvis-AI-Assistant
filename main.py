@@ -6,27 +6,28 @@ import requests
 from openai import OpenAI
 import os
 
-# Initialize recognizer and text-to-speech engine
+# Initialize speech recognition and text-to-speech engine
 recognizer = sr.Recognizer()
-recognizer.energy_threshold = 300  # Lower to make it more sensitive
+recognizer.energy_threshold = 300  # Adjust sensitivity
 recognizer.pause_threshold = 0.5  # Reduce pause detection time
 engine = pyttsx3.init()
 
 def speak(text):
-    """Speak text more slowly with a male voice"""
+    """Convert text to speech with a male voice and slower speed."""
     engine = pyttsx3.init()
     voices = engine.getProperty('voices')
 
     for voice in voices:
-        if "male" in voice.name.lower():  # Try to find a male voice
+        if "male" in voice.name.lower():
             engine.setProperty('voice', voice.id)
             break
 
-    engine.setProperty('rate', 130)  # Slower speech speed
+    engine.setProperty('rate', 130)
     engine.say(text)
     engine.runAndWait()
 
 def aiProcess(command):
+    """Send user command to OpenAI API and return response."""
     client = OpenAI(
         api_key=os.getenv("OPENAI_API_KEY")
     )
@@ -42,7 +43,7 @@ def aiProcess(command):
     return completion.choices[0].message.content
 
 def processCommand(command):
-    """Process recognized commands"""
+    """Process user commands and execute corresponding actions."""
     command = command.lower()
     print(f"Command received: {command}")
 
@@ -64,14 +65,14 @@ def processCommand(command):
         song_library = {key.lower(): value for key, value in music.items()}
 
         if song_name.lower() in song_library:
-            link = song_library[song_name.lower()]
             speak(f"Playing {song_name}")
-            webbrowser.open(link)
+            webbrowser.open(song_library[song_name.lower()])
         else:
             available_songs = ", ".join(music.keys())
             speak(f"Sorry, I couldn't find that song. Try one of these: {available_songs}")
 
     elif "news" in command:
+        """Fetch and read top news headlines."""
         API_KEY = os.getenv("NEWS_API_KEY")
         URL = f"https://newsapi.org/v2/top-headlines?country=us&apiKey={API_KEY}"
 
@@ -94,18 +95,21 @@ def processCommand(command):
     elif "exit" in command or "stop" in command:
         speak("Goodbye!")
         exit()
+
     else:
+        """Handle general queries using AI."""
         ans = aiProcess(command)
         speak(ans)
 
 def listen_for_wake_word():
-    """Continuously listen for 'Jarvis' and execute commands"""
+    """Continuously listen for 'Jarvis' and execute commands."""
     with sr.Microphone() as source:
         recognizer.adjust_for_ambient_noise(source, duration=1)
         print("Listening for wake word 'Jarvis'...")
 
         while True:
             try:
+                # Listen for wake word
                 audio = recognizer.listen(source, timeout=5, phrase_time_limit=3)
                 word = recognizer.recognize_google(audio).lower()
 
